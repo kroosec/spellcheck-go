@@ -41,20 +41,29 @@ func (c *Checker) Exists(word string) bool {
 	return false
 }
 
-func (c *Checker) Corrections(word string) []string {
+func (c *Checker) Correction(word string) string {
 	if c.Exists(word) {
-		return []string{word}
+		return word
 	}
 
 	// one-edit
 	edits := getEdits([]string{word})
 	known := c.knownWords(edits)
 	if len(known) > 0 {
-		return known
+		return c.bestCorrection(known)
 	}
 
 	// two-edits
-	return c.knownWords(getEdits(edits))
+	known = c.knownWords(getEdits(edits))
+	if len(known) > 0 {
+		return c.bestCorrection(known)
+	}
+
+	return ""
+}
+
+func (c *Checker) bestCorrection(corrections []string) string {
+	return corrections[0]
 }
 
 func (c *Checker) knownWords(wordLists ...[]string) (known []string) {

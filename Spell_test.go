@@ -2,7 +2,6 @@ package spellchecker_test
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"spellchecker"
@@ -44,45 +43,45 @@ func TestSpellChecker(t *testing.T) {
 	t.Run("Return corrections for a word", func(t *testing.T) {
 		dict := "something"
 		cases := []struct {
-			word        string
-			corrections []string
+			word       string
+			correction string
 		}{
 			// word exits
-			{"something", []string{"something"}},
+			{"something", "something"},
 			// word not found
-			{"someaaang", nil},
+			{"someaaang", ""},
 			// one-edit
 			// deletes
-			{"somethingg", []string{"something"}},
+			{"somethingg", dict},
 			// transposes
-			{"osmething", []string{"something"}},
-			{"somehting", []string{"something"}},
-			{"somethign", []string{"something"}},
+			{"osmething", dict},
+			{"somehting", dict},
+			{"somethign", dict},
 			// replaces
-			{"momething", []string{"something"}},
-			{"sometRing", []string{"something"}},
-			{"somethino", []string{"something"}},
+			{"momething", dict},
+			{"sometRing", dict},
+			{"somethino", dict},
 			// inserts
-			{"somthing", []string{"something"}},
-			{"omething", []string{"something"}},
-			{"somethin", []string{"something"}},
+			{"somthing", dict},
+			{"omething", dict},
+			{"somethin", dict},
 
 			// two-edits
-			{"somethiaa", []string{"something"}},
-			{"someThin", []string{"something"}},
-			{"omethng", []string{"something"}},
-			{"somehtnig", []string{"something"}},
+			{"somethiaa", dict},
+			{"someThin", dict},
+			{"omethng", dict},
+			{"somehtnig", dict},
 
 			// three-edits, not corrected
-			{"abcething", nil},
+			{"abcething", ""},
 		}
 
 		checker, err := spellchecker.NewChecker(dict)
 		assertError(t, err, nil)
 
 		for _, test := range cases {
-			corrections := checker.Corrections(test.word)
-			assertCorrections(t, corrections, test.corrections, test.word)
+			correction := checker.Correction(test.word)
+			assertCorrection(t, correction, test.correction, test.word)
 		}
 	})
 }
@@ -110,10 +109,10 @@ func assertWords(t *testing.T, checker *spellchecker.Checker, want []string) {
 	}
 }
 
-func assertCorrections(t *testing.T, got, want []string, input string) {
+func assertCorrection(t *testing.T, got, want string, input string) {
 	t.Helper()
 
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("Expected corrections for %q, wanted %+v, got %+v", input, want, got)
+	if got != want {
+		t.Fatalf("Expected corrections for %q, wanted %q, got %q", input, want, got)
 	}
 }
