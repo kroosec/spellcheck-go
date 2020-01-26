@@ -46,14 +46,8 @@ func (c *Checker) Corrections(word string) []string {
 		return []string{word}
 	}
 
-	splits := getSplits(word)
-
-	deletes := getDeletes(word, splits)
-	transposes := getTransposes(word, splits)
-	replaces := getReplaces(word, splits)
-	inserts := getInserts(word, splits)
-
-	return c.knownWords(deletes, transposes, replaces, inserts)
+	edits := getEdits([]string{word})
+	return c.knownWords(edits)
 }
 
 func (c *Checker) knownWords(wordLists ...[]string) (known []string) {
@@ -81,43 +75,32 @@ func getSplits(word string) [][2]string {
 	return splits
 }
 
-func getDeletes(word string, splits [][2]string) (deletes []string) {
-	for _, pair := range splits {
-		if pair[1] != "" {
-			deletes = append(deletes, pair[0]+pair[1][1:])
-		}
-	}
-
-	return
-}
-
-func getTransposes(word string, splits [][2]string) (transposes []string) {
-	for _, pair := range splits {
-		if len(pair[1]) > 1 {
-			trans := string([]byte{pair[1][1], pair[1][0]})
-			transposes = append(transposes, pair[0]+trans+pair[1][2:])
-		}
-	}
-
-	return
-}
-
-func getReplaces(word string, splits [][2]string) (replaces []string) {
-	for _, pair := range splits {
-		if pair[1] != "" {
-			for _, c := range letters {
-				replaces = append(replaces, pair[0]+string(c)+pair[1][1:])
+func getEdits(words []string) (edits []string) {
+	for _, word := range words {
+		splits := getSplits(word)
+		for _, pair := range splits {
+			// Delete
+			if pair[1] != "" {
+				edits = append(edits, pair[0]+pair[1][1:])
 			}
-		}
-	}
 
-	return
-}
+			// Transpose
+			if len(pair[1]) > 1 {
+				trans := string([]byte{pair[1][1], pair[1][0]})
+				edits = append(edits, pair[0]+trans+pair[1][2:])
+			}
 
-func getInserts(word string, splits [][2]string) (inserts []string) {
-	for _, pair := range splits {
-		for _, c := range letters {
-			inserts = append(inserts, pair[0]+string(c)+pair[1])
+			// Replacements
+			if pair[1] != "" {
+				for _, c := range letters {
+					edits = append(edits, pair[0]+string(c)+pair[1][1:])
+				}
+			}
+
+			// Insertions
+			for _, c := range letters {
+				edits = append(edits, pair[0]+string(c)+pair[1])
+			}
 		}
 	}
 
