@@ -1,6 +1,9 @@
 package spellchecker
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"regexp"
 	"strings"
 )
@@ -13,19 +16,26 @@ const (
 	letters = "abcdefghijklmnopqrstuvwxyz"
 )
 
-func NewChecker(dict string) (*Checker, error) {
+func NewChecker(dict io.Reader) (*Checker, error) {
 	words := make(map[string]int)
 	checker := &Checker{words: words}
 
-	checker.insertWords(dict)
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(dict)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read from dictionary: %v", err)
+	}
+
+	checker.insertWords(buf.Bytes())
 
 	return checker, nil
 }
 
-func (c *Checker) insertWords(dict string) {
+func (c *Checker) insertWords(words []byte) {
 	re := regexp.MustCompile(`\w+`)
-	for _, word := range re.FindAllString(dict, -1) {
-		c.words[strings.ToLower(word)]++
+
+	for _, word := range re.FindAll(words, -1) {
+		c.words[strings.ToLower(string(word))]++
 	}
 }
 
@@ -63,7 +73,14 @@ func (c *Checker) Correction(word string) string {
 }
 
 func (c *Checker) bestCorrection(corrections []string) string {
-	return corrections[0]
+	bestCorrection, bestCount := "", 0
+	for _, correction := range corrections {
+		if c.words[correction] > bestCount {
+			bestCount = c.words[correction]
+			bestCorrection = correction
+		}
+	}
+	return bestCorrection
 }
 
 func (c *Checker) knownWords(wordLists ...[]string) (known []string) {

@@ -1,11 +1,27 @@
 package spellchecker_test
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 	"testing"
 
 	"spellchecker"
 )
+
+type testCase struct {
+	word       string
+	correction string
+}
+
+type fakeReader struct {
+}
+
+func (r *fakeReader) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("fake error")
+}
 
 func TestSpellChecker(t *testing.T) {
 	t.Run("New spell checker from words string, with correct count", func(t *testing.T) {
@@ -23,7 +39,8 @@ func TestSpellChecker(t *testing.T) {
 		for i, test := range cases {
 			name := fmt.Sprintf("Test #%d: %s", i, test.dict)
 			t.Run(name, func(t *testing.T) {
-				checker, err := spellchecker.NewChecker(test.dict)
+				reader := strings.NewReader(test.dict)
+				checker, err := spellchecker.NewChecker(reader)
 
 				assertError(t, err, nil)
 				assertWords(t, checker, test.words)
@@ -32,7 +49,8 @@ func TestSpellChecker(t *testing.T) {
 	})
 
 	t.Run("Word not in checker", func(t *testing.T) {
-		checker, err := spellchecker.NewChecker("")
+		reader := strings.NewReader("")
+		checker, err := spellchecker.NewChecker(reader)
 
 		assertError(t, err, nil)
 		if checker.WordsCount() != 0 || checker.Exists("foo") {
@@ -42,10 +60,7 @@ func TestSpellChecker(t *testing.T) {
 
 	t.Run("Return corrections for a word", func(t *testing.T) {
 		dict := "something"
-		cases := []struct {
-			word       string
-			correction string
-		}{
+		cases := []testCase{
 			// word exits
 			{"something", "something"},
 			// word not found
@@ -76,14 +91,49 @@ func TestSpellChecker(t *testing.T) {
 			{"abcething", ""},
 		}
 
-		checker, err := spellchecker.NewChecker(dict)
-		assertError(t, err, nil)
+		rdr := strings.NewReader(dict)
+		assertSpellChecker(t, rdr, cases)
+	})
 
-		for _, test := range cases {
-			correction := checker.Correction(test.word)
-			assertCorrection(t, correction, test.correction, test.word)
+	t.Run("Corrections using big.txt file", func(t *testing.T) {
+		f, err := os.Open("big.txt")
+		assertError(t, err, nil)
+		defer f.Close()
+
+		cases := []testCase{
+			{"sometring", "something"},
+			{"hte", "the"},
+			{"speling", "spelling"},
+			{"korrectud", "corrected"},
+			{"bycycle", "bicycle"},
+			{"inconvient", "inconvenient"},
+			{"arrainged", "arranged"},
+			{"peotry", "poetry"},
+			{"peotryy", "poetry"},
+		}
+		rdr := bufio.NewReader(f)
+		assertSpellChecker(t, rdr, cases)
+	})
+
+	t.Run("Checker from erroneous reader", func(t *testing.T) {
+		reader := &fakeReader{}
+		_, err := spellchecker.NewChecker(reader)
+		if err == nil {
+			t.Fatalf("expected error, got none")
 		}
 	})
+
+}
+
+func assertSpellChecker(t *testing.T, dict io.Reader, cases []testCase) {
+	checker, err := spellchecker.NewChecker(dict)
+	assertError(t, err, nil)
+
+	for _, test := range cases {
+		correction := checker.Correction(test.word)
+		assertCorrection(t, correction, test.correction, test.word)
+	}
+
 }
 
 func assertError(t *testing.T, got, want error) {
