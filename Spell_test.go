@@ -51,6 +51,7 @@ func TestSpellChecker(t *testing.T) {
 			{"something", []string{"something"}},
 			// word not found
 			{"someaaang", nil},
+			// one-edit
 			// deletes
 			{"somethingg", []string{"something"}},
 			// transposes
@@ -65,7 +66,17 @@ func TestSpellChecker(t *testing.T) {
 			{"somthing", []string{"something"}},
 			{"omething", []string{"something"}},
 			{"somethin", []string{"something"}},
+
+			// two-edits
+			{"somethiaa", []string{"something"}},
+			{"someThin", []string{"something"}},
+			{"omethng", []string{"something"}},
+			{"somehtnig", []string{"something"}},
+
+			// three-edits, not corrected
+			{"abcething", nil},
 		}
+
 		checker, err := spellchecker.NewChecker(dict)
 		assertError(t, err, nil)
 

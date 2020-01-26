@@ -46,8 +46,15 @@ func (c *Checker) Corrections(word string) []string {
 		return []string{word}
 	}
 
+	// one-edit
 	edits := getEdits([]string{word})
-	return c.knownWords(edits)
+	known := c.knownWords(edits)
+	if len(known) > 0 {
+		return known
+	}
+
+	// two-edits
+	return c.knownWords(getEdits(edits))
 }
 
 func (c *Checker) knownWords(wordLists ...[]string) (known []string) {
